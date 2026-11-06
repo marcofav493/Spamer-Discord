@@ -116,7 +116,7 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Jumlah Spam (maks 1000)</label>
-                    <input type="number" id="spamCount" value="5" min="1" max="1000">
+                    <input type="number" id="spamCount" value="5" min="1" max="1000" placeholder="5">
                 </div>
                 <div class="form-group">
                     <label>Delay antar kirim (ms)</label>
@@ -206,6 +206,18 @@ function fmtTime(ts) {
 }
 
 /* =========================================================
+   FORCE DEFAULT SPAM COUNT
+   ========================================================= */
+function fixSpamCountDefault() {
+    const el = document.getElementById('spamCount');
+    if (!el) return;
+    if (!el.value || el.value === '' || isNaN(parseInt(el.value))) {
+        el.value = 5;
+    }
+    el.setAttribute('value', '5');
+}
+
+/* =========================================================
    GATE
    ========================================================= */
 function tryGate() {
@@ -233,6 +245,7 @@ function enterApp() {
     document.getElementById('gateScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     refreshUserBar();
+    fixSpamCountDefault(); // Kunci nilai default di sini
 }
 
 function refreshUserBar() {
@@ -433,6 +446,8 @@ document.getElementById('spamImage').addEventListener('change', function() {
    BOOT
    ========================================================= */
 (function boot() {
+    fixSpamCountDefault(); // Fix pertama pas dokumen siap
+
     const s = getSession();
     if (s) {
         const keys = getKeys();
@@ -443,6 +458,7 @@ document.getElementById('spamImage').addEventListener('change', function() {
     document.getElementById('gateScreen').style.display = 'flex';
     document.getElementById('mainApp').style.display = 'none';
 })();
+window.addEventListener('load', fixSpamCountDefault); // Double jaminan setelah semua render
 </script>
 
 </body>

@@ -22,6 +22,7 @@
         .form-group input:focus { border-color:#33ff33; box-shadow:0 0 18px rgba(0,255,0,0.06); }
         .form-group input::placeholder { color:#2a4a2a; }
         .form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+        .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
         .btn { padding:12px 28px; border:none; border-radius:40px; font-weight:600; font-size:14px; cursor:pointer; transition:0.25s; letter-spacing:0.5px; }
         .btn-primary { background:#1a3b1a; color:#33ff33; border:1px solid #33ff33; }
         .btn-primary:hover { background:#33ff33; color:#0a110a; box-shadow:0 0 30px rgba(0,255,0,0.15); }
@@ -37,7 +38,7 @@
         .logs .log-error { color:#ff6666; }
         .logs .log-info { color:#55bbff; }
         .footer { margin-top:20px; text-align:center; font-size:12px; color:#1a3a1a; letter-spacing:1px; border-top:1px dashed #1a2e1a; padding-top:16px; }
-        @media (max-width:600px) { .form-row-3 { grid-template-columns:1fr; } .header { flex-direction:column; align-items:flex-start; } }
+        @media (max-width:600px) { .form-row-3, .form-row-2 { grid-template-columns:1fr; } .header { flex-direction:column; align-items:flex-start; } }
 
         .admin-table { width:100%; border-collapse:collapse; margin-top:14px; font-size:12px; }
         .admin-table th, .admin-table td { padding:9px 10px; text-align:left; border-bottom:1px solid #1a2e1a; color:#7ac47a; word-break:break-all; }
@@ -49,6 +50,9 @@
         .admin-table .k-quota { color:#55bbff; }
         .admin-table button.del { background:transparent; border:1px solid #5a2a2a; color:#ff5555; border-radius:20px; padding:3px 12px; cursor:pointer; font-size:11px; }
         .admin-table button.del:hover { background:#5a1a1a; }
+        .admin-table button.copy { background:transparent; border:1px solid #2a5a3a; color:#55ff88; border-radius:20px; padding:3px 12px; cursor:pointer; font-size:11px; margin-right:6px; }
+        .admin-table button.copy:hover { background:#2a5a3a; }
+        .admin-table button.copy.copied { background:#33ff33; color:#0a110a; border-color:#33ff33; }
         .empty-note { color:#2a5a2a; font-size:12px; text-align:center; padding:16px; }
 
         #loginScreen { position:fixed; inset:0; background:#0c0f0c; z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px; }
@@ -92,6 +96,17 @@
     <div class="card">
         <div class="card-title">🔑 Generate Key <span class="badge">ROOT</span></div>
 
+        <div class="form-row-2">
+            <div class="form-group">
+                <label>Prefix Key (contoh: MXZ, ZAXZZ, GALZZ)</label>
+                <input type="text" id="keyPrefix" value="MXZ" maxlength="10" placeholder="MXZ" spellcheck="false" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Jumlah Key yang dibikin sekaligus</label>
+                <input type="number" id="keyAmount" value="1" min="1" max="100">
+            </div>
+        </div>
+
         <div class="form-row-3">
             <div class="form-group">
                 <label>Durasi — Hari</label>
@@ -112,14 +127,10 @@
             <input type="number" id="quotaAmount" value="50" min="1" max="100000">
         </div>
 
-        <div class="form-group">
-            <label>Jumlah Key yang dibikin sekaligus</label>
-            <input type="number" id="keyAmount" value="1" min="1" max="100">
-        </div>
-
         <div class="btn-group">
             <button class="btn btn-success" onclick="createKeys()">🔑 Generate Key</button>
             <button class="btn btn-outline" onclick="renderKeyTable()">🔄 Refresh</button>
+            <button class="btn btn-outline" onclick="copyAllKeys()">📋 Copy All Keys</button>
             <button class="btn btn-danger" onclick="wipeKeys()">💀 Hapus Semua Key</button>
             <button class="btn btn-outline" onclick="adminLogout()">🚪 Logout</button>
         </div>
@@ -156,6 +167,7 @@
    ========================================================= */
 const LS_KEYS = 'marcoxz_keys_v1';
 const LS_ADMIN = 'marcoxz_admin_v1';
+const LS_PREFIX = 'marcoxz_prefix_v1';
 
 /* ADMIN MASTER KEY — ganti sesuai selera */
 const ADMIN_KEY = 'ZAXZZ-1';
@@ -168,15 +180,22 @@ function saveKeys(arr) { localStorage.setItem(LS_KEYS, JSON.stringify(arr)); }
 function isAdminLogged() { return localStorage.getItem(LS_ADMIN) === '1'; }
 function setAdminLogged(v) { localStorage.setItem(LS_ADMIN, v ? '1' : '0'); }
 
-function genKeyStr() {
+function getPrefix() {
+    return (localStorage.getItem(LS_PREFIX) || 'MXZ').toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+function savePrefix(p) { localStorage.setItem(LS_PREFIX, p); }
+
+function genKeyStr(prefix) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     const seg = () => {
         let s = '';
         for (let i=0;i<4;i++) s += chars[Math.floor(Math.random()*chars.length)];
         return s;
     };
-    return 'MXZ-' + seg() + '-' + seg() + '-' + seg();
+    const p = (prefix || getPrefix() || 'MXZ').toUpperCase();
+    return p + '-' + seg() + '-' + seg() + '-' + seg();
 }
+
 function fmtTime(ts) {
     if (!ts) return '-';
     const d = new Date(ts);
@@ -202,6 +221,7 @@ function tryAdminLogin() {
     setTimeout(() => {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('adminApp').style.display = 'block';
+        loadPrefix();
         renderKeyTable();
         addLog('adminLogs','[✓] Login ROOT berhasil.','success');
     }, 400);
@@ -216,6 +236,22 @@ function adminLogout() {
 }
 
 /* =========================================================
+   PREFIX
+   ========================================================= */
+function loadPrefix() {
+    const el = document.getElementById('keyPrefix');
+    if (el) el.value = getPrefix();
+}
+
+document.addEventListener('input', function(e) {
+    if (e.target && e.target.id === 'keyPrefix') {
+        const clean = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+        e.target.value = clean;
+        savePrefix(clean);
+    }
+});
+
+/* =========================================================
    LOG
    ========================================================= */
 function addLog(id, msg, type='info') {
@@ -228,10 +264,66 @@ function addLog(id, msg, type='info') {
 }
 
 /* =========================================================
+   CLIPBOARD
+   ========================================================= */
+async function copyText(txt) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(txt);
+            return true;
+        }
+    } catch(e) {}
+    /* fallback */
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        return true;
+    } catch(e) { return false; }
+}
+
+function copyKey(i, btn) {
+    const keys = getKeys();
+    if (i<0 || i>=keys.length) return;
+    copyText(keys[i].key).then(ok => {
+        if (ok) {
+            const old = btn.textContent;
+            btn.textContent = 'COPIED';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = old;
+                btn.classList.remove('copied');
+            }, 900);
+            addLog('adminLogs', `[✓] Copied: ${keys[i].key}`, 'success');
+        } else {
+            addLog('adminLogs', '[✗] Gagal copy.','error');
+        }
+    });
+}
+
+async function copyAllKeys() {
+    const keys = getKeys();
+    if (keys.length === 0) { addLog('adminLogs','[!] Tidak ada key.','info'); return; }
+    const all = keys.map(k => k.key).join('\n');
+    const ok = await copyText(all);
+    if (ok) addLog('adminLogs', `[✓] ${keys.length} key dicopy ke clipboard.`, 'success');
+    else addLog('adminLogs','[✗] Gagal copy semua.','error');
+}
+
+/* =========================================================
    KEY MANAGER
    ========================================================= */
 function createKeys() {
     if (!isAdminLogged()) return;
+
+    const prefixRaw = document.getElementById('keyPrefix').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    const prefix = prefixRaw || 'MXZ';
+    savePrefix(prefix);
 
     const day = parseInt(document.getElementById('durDay').value) || 0;
     const hour = parseInt(document.getElementById('durHour').value) || 0;
@@ -249,7 +341,7 @@ function createKeys() {
     const made = [];
     for (let i=0; i<amount; i++) {
         let newKey, tries = 0;
-        do { newKey = genKeyStr(); tries++; }
+        do { newKey = genKeyStr(prefix); tries++; }
         while (keys.some(x => x.key === newKey) && tries < 20);
         const obj = { key:newKey, createdAt:now, expiresAt:now+durMs, quota:quota, used:0 };
         keys.push(obj);
@@ -261,7 +353,7 @@ function createKeys() {
     made.forEach(k => {
         addLog('adminLogs', `[✓] ${k.key} | ${day}d ${hour}h ${min}m | kuota ${k.quota}`, 'success');
     });
-    addLog('adminLogs', `[✓] Total ${made.length} key dibuat.`, 'success');
+    addLog('adminLogs', `[✓] Total ${made.length} key dibuat. Prefix: ${prefix}`, 'success');
 }
 
 function renderKeyTable() {
@@ -284,7 +376,10 @@ function renderKeyTable() {
             <td>${fmtTime(k.expiresAt)}</td>
             <td class="k-quota">${sisa} / ${k.quota}</td>
             <td class="${statusCls}">${statusTxt}</td>
-            <td><button class="del" onclick="deleteKey(${i})">HAPUS</button></td>
+            <td>
+                <button class="copy" onclick="copyKey(${i}, this)">COPY</button>
+                <button class="del" onclick="deleteKey(${i})">HAPUS</button>
+            </td>
         </tr>`;
     }).join('');
 }
@@ -314,6 +409,7 @@ function wipeKeys() {
     if (isAdminLogged()) {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('adminApp').style.display = 'block';
+        loadPrefix();
         renderKeyTable();
     } else {
         document.getElementById('loginScreen').style.display = 'flex';
