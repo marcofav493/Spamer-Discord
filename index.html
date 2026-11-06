@@ -115,8 +115,9 @@
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Jumlah Spam (maks 1000)</label>
-                    <input type="number" id="spamCount" value="5" min="1" max="1000" placeholder="5">
+                    <label>Jumlah Spam</label>
+                    <!-- Value dan max dihapus dari HTML, diatur via JS -->
+                    <input type="number" id="spamCount" min="1" placeholder="Otomatis">
                 </div>
                 <div class="form-group">
                     <label>Delay antar kirim (ms)</label>
@@ -206,15 +207,29 @@ function fmtTime(ts) {
 }
 
 /* =========================================================
-   FORCE DEFAULT SPAM COUNT
+   FIX SPAM COUNT (Otomatis nyesuaiin sisa kuota)
    ========================================================= */
 function fixSpamCountDefault() {
     const el = document.getElementById('spamCount');
-    if (!el) return;
-    if (!el.value || el.value === '' || isNaN(parseInt(el.value))) {
-        el.value = 5;
+    const s = getSession();
+    
+    // Kalau user belom login / nggak ada session, biarin default
+    if (!el || !s) {
+        if (el) { el.value = 1; el.max = 1; }
+        return;
     }
-    el.setAttribute('value', '5');
+
+    const keys = getKeys();
+    const k = keys.find(x => x.key === s.key);
+    
+    if (k) {
+        const sisa = k.quota - k.used;
+        el.max = sisa > 0 ? sisa : 1; // Batas maksimum ngikutin sisa kuota
+        el.value = sisa > 0 ? sisa : 1; // Default value ngikutin sisa kuota
+    } else {
+        el.max = 1;
+        el.value = 1;
+    }
 }
 
 /* =========================================================
@@ -245,7 +260,7 @@ function enterApp() {
     document.getElementById('gateScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
     refreshUserBar();
-    fixSpamCountDefault(); // Kunci nilai default di sini
+    fixSpamCountDefault(); // Panggil fungsi sinkronisasi kuota
 }
 
 function refreshUserBar() {
@@ -261,6 +276,12 @@ function refreshUserBar() {
     qEl.textContent = sisa + ' / ' + k.quota;
     qEl.className = 'quota' + (sisa <= 0 ? ' empty' : (sisa <= Math.max(1, Math.floor(k.quota*0.1)) ? ' low' : ''));
     document.getElementById('infoExp').textContent = fmtTime(k.expiresAt);
+    
+    // Update limit input tiap kali kuota berubah (misal abis spam)
+    const countEl = document.getElementById('spamCount');
+    if (countEl) {
+        countEl.max = sisa > 0 ? sisa : 1;
+    }
 }
 
 function logout() {
@@ -334,7 +355,7 @@ async function startSpam() {
 
     const url = document.getElementById('spamUrl').value.trim();
     const msg = document.getElementById('spamMessage').value.trim();
-    let count = parseInt(document.getElementById('spamCount').value) || 5;
+    let count = parseInt(document.getElementById('spamCount').value) || 1;
     const delay = parseInt(document.getElementById('spamDelay').value) || 500;
 
     if (!url || !url.startsWith('https://discord.com/api/webhooks/')) {
@@ -394,8 +415,11 @@ async function startSpam() {
     }
     if (spamRunning) addLog('spamLogs', '[✓] Selesai! Total: ' + sent, 'success');
     spamRunning = false;
-    refreshUserBar();
+    
+    // Update ulang isi input count setelah spam selesai
+    fixSpamCountDefault();
 }
+
 function stopSpam() {
     spamRunning = false;
     addLog('spamLogs', '[⏹] Spam dihentikan.', 'info');
@@ -446,8 +470,6 @@ document.getElementById('spamImage').addEventListener('change', function() {
    BOOT
    ========================================================= */
 (function boot() {
-    fixSpamCountDefault(); // Fix pertama pas dokumen siap
-
     const s = getSession();
     if (s) {
         const keys = getKeys();
@@ -458,7 +480,6 @@ document.getElementById('spamImage').addEventListener('change', function() {
     document.getElementById('gateScreen').style.display = 'flex';
     document.getElementById('mainApp').style.display = 'none';
 })();
-window.addEventListener('load', fixSpamCountDefault); // Double jaminan setelah semua render
 </script>
 
 </body>
