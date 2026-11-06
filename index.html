@@ -115,9 +115,8 @@
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Jumlah Spam</label>
-                    <!-- Value dan max dihapus dari HTML, diatur via JS -->
-                    <input type="number" id="spamCount" min="1" placeholder="Otomatis">
+                    <label>Jumlah Spam (Maksimal otomatis)</label>
+                    <input type="number" id="spamCount" min="1" placeholder="0">
                 </div>
                 <div class="form-group">
                     <label>Delay antar kirim (ms)</label>
@@ -213,7 +212,6 @@ function fixSpamCountDefault() {
     const el = document.getElementById('spamCount');
     const s = getSession();
     
-    // Kalau user belom login / nggak ada session, biarin default
     if (!el || !s) {
         if (el) { el.value = 1; el.max = 1; }
         return;
@@ -224,13 +222,47 @@ function fixSpamCountDefault() {
     
     if (k) {
         const sisa = k.quota - k.used;
-        el.max = sisa > 0 ? sisa : 1; // Batas maksimum ngikutin sisa kuota
-        el.value = sisa > 0 ? sisa : 1; // Default value ngikutin sisa kuota
+        el.max = sisa > 0 ? sisa : 1; 
+        el.value = sisa > 0 ? sisa : 1; 
     } else {
         el.max = 1;
         el.value = 1;
     }
 }
+
+/* =========================================================
+   INTERSEPTOR INPUT (AUTO CLAMP / UBAH OTOMATIS)
+   ========================================================= */
+function clampSpamInput() {
+    const el = document.getElementById('spamCount');
+    if (!el) return;
+    
+    const max = parseInt(el.max);
+    let val = parseInt(el.value);
+
+    // Kalau kosong atau NaN, biarin sementara biar user bisa ngetik
+    if (isNaN(val)) return;
+
+    // Kalau user ngetik lebih dari max, paksa balik ke max
+    if (val > max) {
+        el.value = max;
+    } 
+    // Kalau user ngetik 0 atau minus, paksa ke 1
+    else if (val < 1) {
+        el.value = 1;
+    }
+}
+
+// Pasang event listener di form input
+document.addEventListener('DOMContentLoaded', () => {
+    const spamInput = document.getElementById('spamCount');
+    if (spamInput) {
+        // Cek tiap kali ngetik
+        spamInput.addEventListener('input', clampSpamInput);
+        // Cek pas pindah fokus (blur) atau habis ngetik
+        spamInput.addEventListener('blur', clampSpamInput);
+    }
+});
 
 /* =========================================================
    GATE
@@ -277,10 +309,12 @@ function refreshUserBar() {
     qEl.className = 'quota' + (sisa <= 0 ? ' empty' : (sisa <= Math.max(1, Math.floor(k.quota*0.1)) ? ' low' : ''));
     document.getElementById('infoExp').textContent = fmtTime(k.expiresAt);
     
-    // Update limit input tiap kali kuota berubah (misal abis spam)
+    // Update max input tiap kali kuota berubah
     const countEl = document.getElementById('spamCount');
     if (countEl) {
         countEl.max = sisa > 0 ? sisa : 1;
+        // Panggil clamp jaga-jaga kalau pas kuota ngurang, inputnya ketinggalan di angka lama
+        clampSpamInput();
     }
 }
 
@@ -372,6 +406,8 @@ async function startSpam() {
     if (count > sisa) {
         addLog('spamLogs', `[!] Kuota cuma ${sisa}. Dipotong dari ${count} jadi ${sisa}.`, 'info');
         count = sisa;
+        // Update UI input biar sinkron kalau ada apa-apa
+        document.getElementById('spamCount').value = sisa;
     }
 
     spamRunning = true;
