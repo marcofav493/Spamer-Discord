@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarcoXz — Admin Dashboard</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Courier New', monospace; }
+        body { background:#0c0f0c; min-height:100vh; display:flex; justify-content:center; align-items:center; padding:20px; }
+        .container { max-width:900px; width:100%; background:#111811; border:2px solid #1f3b1f; border-radius:18px; padding:28px 26px; box-shadow:0 0 30px rgba(0,255,0,0.08); }
+        .header { border-bottom:2px dashed #1f3b1f; padding-bottom:14px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+        .header-left { display:flex; align-items:center; gap:12px; }
+        .header-left .icon { font-size:28px; color:#33ff33; text-shadow:0 0 10px #33ff33; }
+        .header-left h1 { font-size:22px; font-weight:700; color:#33ff33; text-shadow:0 0 6px #1a7a1a; letter-spacing:1px; }
+        .header-left .sub { font-size:11px; color:#3a7a3a; letter-spacing:1px; }
+        .card { background:#0d130d; border-radius:16px; padding:22px 24px; border:1px solid #1f3b1f; }
+        .card-title { font-size:16px; font-weight:600; color:#33ff33; margin-bottom:18px; display:flex; align-items:center; gap:10px; text-shadow:0 0 4px #0f3f0f; }
+        .card-title .badge { font-size:10px; background:#1a2e1a; padding:2px 14px; border-radius:30px; color:#4a9a4a; border:1px solid #1f3b1f; }
+        .form-group { margin-bottom:16px; }
+        .form-group label { display:block; font-size:13px; color:#3a8a3a; margin-bottom:5px; letter-spacing:0.5px; }
+        .form-group input { width:100%; padding:12px 16px; background:#0a110a; border:1px solid #1a2e1a; border-radius:10px; color:#bbffbb; font-size:14px; outline:none; transition:0.25s; }
+        .form-group input:focus { border-color:#33ff33; box-shadow:0 0 18px rgba(0,255,0,0.06); }
+        .form-group input::placeholder { color:#2a4a2a; }
+        .form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+        .btn { padding:12px 28px; border:none; border-radius:40px; font-weight:600; font-size:14px; cursor:pointer; transition:0.25s; letter-spacing:0.5px; }
+        .btn-primary { background:#1a3b1a; color:#33ff33; border:1px solid #33ff33; }
+        .btn-primary:hover { background:#33ff33; color:#0a110a; box-shadow:0 0 30px rgba(0,255,0,0.15); }
+        .btn-danger { background:#2a1a1a; color:#ff5555; border:1px solid #5a2a2a; }
+        .btn-danger:hover { background:#5a1a1a; border-color:#ff5555; box-shadow:0 0 25px rgba(255,50,50,0.12); }
+        .btn-success { background:#1a2a1a; color:#55ff88; border:1px solid #2a5a3a; }
+        .btn-success:hover { background:#2a5a3a; border-color:#55ff88; }
+        .btn-outline { background:transparent; border:1px solid #1f3b1f; color:#3a7a3a; }
+        .btn-outline:hover { background:#1a2e1a; border-color:#4a9a4a; color:#88ff88; }
+        .btn-group { display:flex; gap:12px; flex-wrap:wrap; margin-top:12px; }
+        .logs { background:#080f08; border-radius:12px; padding:14px 16px; max-height:150px; overflow-y:auto; font-size:12px; color:#3a8a3a; border:1px solid #1a2e1a; margin-top:16px; line-height:1.6; }
+        .logs .log-success { color:#55ff88; }
+        .logs .log-error { color:#ff6666; }
+        .logs .log-info { color:#55bbff; }
+        .footer { margin-top:20px; text-align:center; font-size:12px; color:#1a3a1a; letter-spacing:1px; border-top:1px dashed #1a2e1a; padding-top:16px; }
+        @media (max-width:600px) { .form-row-3 { grid-template-columns:1fr; } .header { flex-direction:column; align-items:flex-start; } }
+
+        .admin-table { width:100%; border-collapse:collapse; margin-top:14px; font-size:12px; }
+        .admin-table th, .admin-table td { padding:9px 10px; text-align:left; border-bottom:1px solid #1a2e1a; color:#7ac47a; word-break:break-all; }
+        .admin-table th { color:#33ff33; font-size:11px; letter-spacing:1px; text-transform:uppercase; }
+        .admin-table tr:hover td { background:#0f170f; }
+        .admin-table .k-key { color:#bbffbb; font-weight:700; letter-spacing:1px; }
+        .admin-table .k-valid { color:#55ff88; }
+        .admin-table .k-expired { color:#ff6666; }
+        .admin-table .k-quota { color:#55bbff; }
+        .admin-table button.del { background:transparent; border:1px solid #5a2a2a; color:#ff5555; border-radius:20px; padding:3px 12px; cursor:pointer; font-size:11px; }
+        .admin-table button.del:hover { background:#5a1a1a; }
+        .empty-note { color:#2a5a2a; font-size:12px; text-align:center; padding:16px; }
+
+        #loginScreen { position:fixed; inset:0; background:#0c0f0c; z-index:9999; display:flex; justify-content:center; align-items:center; padding:20px; }
+        .gate-box { max-width:460px; width:100%; background:#111811; border:2px solid #1f3b1f; border-radius:18px; padding:34px 30px; box-shadow:0 0 40px rgba(0,255,0,0.10); text-align:center; }
+        .gate-box .gate-icon { font-size:42px; color:#33ff33; text-shadow:0 0 18px #33ff33; margin-bottom:12px; }
+        .gate-box h2 { color:#33ff33; font-size:20px; letter-spacing:2px; margin-bottom:6px; text-shadow:0 0 6px #1a7a1a; }
+        .gate-box p.sub { color:#3a7a3a; font-size:11px; letter-spacing:1px; margin-bottom:24px; }
+        .gate-box input { width:100%; padding:14px 18px; background:#0a110a; border:1px solid #1a2e1a; border-radius:10px; color:#bbffbb; font-size:15px; outline:none; text-align:center; letter-spacing:3px; margin-bottom:16px; transition:0.25s; }
+        .gate-box input:focus { border-color:#33ff33; box-shadow:0 0 18px rgba(0,255,0,0.10); }
+        .gate-box .btn { width:100%; }
+        .gate-msg { font-size:12px; margin-top:14px; min-height:16px; color:#ff6666; letter-spacing:0.5px; }
+        .gate-msg.ok { color:#55ff88; }
+    </style>
+</head>
+<body>
+
+<!-- ============ LOGIN ADMIN ============ -->
+<div id="loginScreen">
+    <div class="gate-box">
+        <div class="gate-icon">⚙</div>
+        <h2>ADMIN GATE</h2>
+        <p class="sub">// ROOT ACCESS ONLY //</p>
+        <input type="password" id="adminKeyInput" placeholder="ADMIN KEY" autocomplete="off" spellcheck="false">
+        <button class="btn btn-primary" onclick="tryAdminLogin()">UNLOCK PANEL</button>
+        <div class="gate-msg" id="adminMsg"></div>
+    </div>
+</div>
+
+<!-- ============ PANEL ============ -->
+<div class="container" id="adminApp" style="display:none;">
+    <div class="header">
+        <div class="header-left">
+            <span class="icon">⚙</span>
+            <div>
+                <h1>MarcoXz — Admin</h1>
+                <span class="sub">// KEY MANAGER · ROOT CONSOLE</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">🔑 Generate Key <span class="badge">ROOT</span></div>
+
+        <div class="form-row-3">
+            <div class="form-group">
+                <label>Durasi — Hari</label>
+                <input type="number" id="durDay" value="0" min="0" max="365">
+            </div>
+            <div class="form-group">
+                <label>Durasi — Jam</label>
+                <input type="number" id="durHour" value="1" min="0" max="23">
+            </div>
+            <div class="form-group">
+                <label>Durasi — Menit</label>
+                <input type="number" id="durMin" value="0" min="0" max="59">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Kuota Spam (jumlah pesan yang boleh dikirim)</label>
+            <input type="number" id="quotaAmount" value="50" min="1" max="100000">
+        </div>
+
+        <div class="form-group">
+            <label>Jumlah Key yang dibikin sekaligus</label>
+            <input type="number" id="keyAmount" value="1" min="1" max="100">
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-success" onclick="createKeys()">🔑 Generate Key</button>
+            <button class="btn btn-outline" onclick="renderKeyTable()">🔄 Refresh</button>
+            <button class="btn btn-danger" onclick="wipeKeys()">💀 Hapus Semua Key</button>
+            <button class="btn btn-outline" onclick="adminLogout()">🚪 Logout</button>
+        </div>
+
+        <div class="logs" id="adminLogs" style="max-height:120px;">
+            <div class="log-info">[✓] Admin Panel siap. Login sebagai ROOT.</div>
+        </div>
+
+        <div style="max-height:340px; overflow-y:auto; margin-top:8px;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Dibuat</th>
+                        <th>Expired</th>
+                        <th>Kuota</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="keyTableBody">
+                    <tr><td colspan="6" class="empty-note">Belum ada key.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">MarcoXz Admin Console // encrypted · 0x3F2A</div>
+</div>
+
+<script>
+/* =========================================================
+   STORAGE (sama persis dengan index.html)
+   ========================================================= */
+const LS_KEYS = 'marcoxz_keys_v1';
+const LS_ADMIN = 'marcoxz_admin_v1';
+
+/* ADMIN MASTER KEY — ganti sesuai selera */
+const ADMIN_KEY = 'ZAXZZ-1';
+
+function getKeys() {
+    try { return JSON.parse(localStorage.getItem(LS_KEYS) || '[]'); }
+    catch(e) { return []; }
+}
+function saveKeys(arr) { localStorage.setItem(LS_KEYS, JSON.stringify(arr)); }
+function isAdminLogged() { return localStorage.getItem(LS_ADMIN) === '1'; }
+function setAdminLogged(v) { localStorage.setItem(LS_ADMIN, v ? '1' : '0'); }
+
+function genKeyStr() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const seg = () => {
+        let s = '';
+        for (let i=0;i<4;i++) s += chars[Math.floor(Math.random()*chars.length)];
+        return s;
+    };
+    return 'MXZ-' + seg() + '-' + seg() + '-' + seg();
+}
+function fmtTime(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts);
+    const p = n => String(n).padStart(2,'0');
+    return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/* =========================================================
+   LOGIN
+   ========================================================= */
+function tryAdminLogin() {
+    const v = document.getElementById('adminKeyInput').value.trim();
+    const msg = document.getElementById('adminMsg');
+    msg.className = 'gate-msg';
+    msg.textContent = '';
+
+    if (!v) { msg.textContent = '[✗] Key kosong.'; return; }
+    if (v !== ADMIN_KEY) { msg.textContent = '[✗] ADMIN KEY SALAH.'; return; }
+
+    msg.className = 'gate-msg ok';
+    msg.textContent = '[✓] ROOT ACCESS GRANTED.';
+    setAdminLogged(true);
+    setTimeout(() => {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('adminApp').style.display = 'block';
+        renderKeyTable();
+        addLog('adminLogs','[✓] Login ROOT berhasil.','success');
+    }, 400);
+}
+
+function adminLogout() {
+    setAdminLogged(false);
+    document.getElementById('adminApp').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('adminKeyInput').value = '';
+    document.getElementById('adminMsg').textContent = '';
+}
+
+/* =========================================================
+   LOG
+   ========================================================= */
+function addLog(id, msg, type='info') {
+    const log = document.getElementById(id);
+    const div = document.createElement('div');
+    div.className = 'log-' + type;
+    div.textContent = msg;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+}
+
+/* =========================================================
+   KEY MANAGER
+   ========================================================= */
+function createKeys() {
+    if (!isAdminLogged()) return;
+
+    const day = parseInt(document.getElementById('durDay').value) || 0;
+    const hour = parseInt(document.getElementById('durHour').value) || 0;
+    const min = parseInt(document.getElementById('durMin').value) || 0;
+    const quota = parseInt(document.getElementById('quotaAmount').value) || 1;
+    const amount = parseInt(document.getElementById('keyAmount').value) || 1;
+
+    const durMs = ((day*24 + hour)*60 + min) * 60 * 1000;
+    if (durMs <= 0) { addLog('adminLogs','[✗] Durasi harus lebih dari 0.','error'); return; }
+    if (quota <= 0) { addLog('adminLogs','[✗] Kuota harus lebih dari 0.','error'); return; }
+    if (amount <= 0) { addLog('adminLogs','[✗] Jumlah key harus lebih dari 0.','error'); return; }
+
+    const keys = getKeys();
+    const now = Date.now();
+    const made = [];
+    for (let i=0; i<amount; i++) {
+        let newKey, tries = 0;
+        do { newKey = genKeyStr(); tries++; }
+        while (keys.some(x => x.key === newKey) && tries < 20);
+        const obj = { key:newKey, createdAt:now, expiresAt:now+durMs, quota:quota, used:0 };
+        keys.push(obj);
+        made.push(obj);
+    }
+    saveKeys(keys);
+    renderKeyTable();
+
+    made.forEach(k => {
+        addLog('adminLogs', `[✓] ${k.key} | ${day}d ${hour}h ${min}m | kuota ${k.quota}`, 'success');
+    });
+    addLog('adminLogs', `[✓] Total ${made.length} key dibuat.`, 'success');
+}
+
+function renderKeyTable() {
+    const keys = getKeys();
+    const tbody = document.getElementById('keyTableBody');
+    if (!tbody) return;
+    if (keys.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-note">Belum ada key.</td></tr>';
+        return;
+    }
+    const now = Date.now();
+    tbody.innerHTML = keys.map((k, i) => {
+        const expired = now > k.expiresAt;
+        const sisa = k.quota - k.used;
+        const statusTxt = expired ? 'EXPIRED' : (sisa <= 0 ? 'HABIS' : 'AKTIF');
+        const statusCls = (expired || sisa <= 0) ? 'k-expired' : 'k-valid';
+        return `<tr>
+            <td class="k-key">${k.key}</td>
+            <td>${fmtTime(k.createdAt)}</td>
+            <td>${fmtTime(k.expiresAt)}</td>
+            <td class="k-quota">${sisa} / ${k.quota}</td>
+            <td class="${statusCls}">${statusTxt}</td>
+            <td><button class="del" onclick="deleteKey(${i})">HAPUS</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function deleteKey(i) {
+    if (!isAdminLogged()) return;
+    const keys = getKeys();
+    if (i<0 || i>=keys.length) return;
+    const removed = keys.splice(i,1)[0];
+    saveKeys(keys);
+    renderKeyTable();
+    addLog('adminLogs', `[✓] Key dihapus: ${removed.key}`, 'info');
+}
+
+function wipeKeys() {
+    if (!isAdminLogged()) return;
+    if (!confirm('Hapus SEMUA key?')) return;
+    saveKeys([]);
+    renderKeyTable();
+    addLog('adminLogs','[✓] Semua key dihapus.','success');
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+(function boot() {
+    if (isAdminLogged()) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('adminApp').style.display = 'block';
+        renderKeyTable();
+    } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('adminApp').style.display = 'none';
+    }
+})();
+</script>
+
+</body>
+</html>
